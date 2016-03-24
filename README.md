@@ -3,6 +3,6 @@
 ### dependency
     - node module: http
     - npm module: url xml2js
-    - Meteor packages: webapp angluar-meteor
+    - Meteor packages: webapp angluar-meteor altapp:aes
     - front-end framework: angular1
 
