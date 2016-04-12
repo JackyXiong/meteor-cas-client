@@ -2,7 +2,7 @@ angular.module('angle').controller('loginCasCtrl', ["$scope", "$meteor", "$state
   function ($scope, $meteor, $stateParams, $state) {
     let token = $stateParams.token;
     if (CryptoJS.AES.decrypt(token, 'key').toString(CryptoJS.enc.Utf8) === 'cas') {
-      let loginRequest = {token: CryptoJS.AES.encrypt('cas', 'key').toString()};
+      let loginRequest = {token: token};
       Accounts.callLoginMethod({
         methodArguments: [loginRequest],
       });

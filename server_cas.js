@@ -12,6 +12,7 @@ const serverHost = casSettings.serverHost,
       serverVailidateTicket = casSettings.serverVailidateTicket,
       serviceUrl = casSettings.serviceUrl;
 var casTicket = new Mongo.Collection('cas_ticket');
+var userTokens = new Mongo.Collection('user_token');
 
 var globalUser;
 
@@ -22,15 +23,19 @@ Accounts.registerLoginHandler(function(loginRequest) {
   if (CryptoJS.AES.decrypt(loginRequest.token, 'key').toString(CryptoJS.enc.Utf8) !== 'cas') {
     return undefined;
   }
-  var user = Meteor.users.findOne({'emails.address': globalUser});
-  var userId;
+  var username, userToken = userTokens.findOne({token: token});
+  if (!userToken || !userToken.username) {
+    return undefined;
+  } else {
+    username = userToken.username;
+  }
+  var userId, user = Meteor.users.findOne({'emails.address': globalUser});
   if(!user) {
     userId = Meteor.users.insert({
       username: globalUser,
       createdAt: new Date(),
       emails: [{ address: globalUser, verified: false}],
-      profile: {
-      }
+      profile: {}
     });
   } else {
     userId = user._id;
@@ -108,10 +113,11 @@ function login(req, res, next) {
             res.end('parse xml to get user error from CAS server: ' + err);
           } else {
             // 存储用户的ticket服务器登出请求使用
-            casTicket.upsert({username: user}, {$set: {'ticket': req.query.ticket}});
-            globalUser = user;
-            // 携带token重定向到前端路由，前端调用登录方法
+            casTicket.upsert({username: user}, {$set: {ticket: req.query.ticket}});
+            // 生成token和用户绑定。携带token重定向到前端路由，前端调用登录方法
             var token = CryptoJS.AES.encrypt('cas', 'key').toString();
+            userTokens.upsert({username: user}, {$set: {token: token}});
+
             var clientLoginURL = casSettings.clientLoginURL + url.format({query: {token: token}});
             res.writeHead('302', { location: clientLoginURL });
             res.end();
